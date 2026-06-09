@@ -3,6 +3,8 @@
 #include <stdio.h>//Libreria para funciones de entrada y salida estándar
 #include <stdlib.h>//Libreria para funciones de utilidad general
 #include <string>//Libreria para manipulación de cadenas de texto
+#include <conio.h>//Libreria para funciones de consola, como getch() y kbhit()
+
 
 using namespace std;
 
