@@ -8,6 +8,7 @@ bool esPar(int numero)
     // El operador '%' es el MOD. Divide el numero entre 2 y calcula el residuo.
     if (numero % 2 == 0)
     {
+
         return true; // Si el residuo es 0, el numero es par. Devuelve verdadero.
     }
     else
