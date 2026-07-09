@@ -20,374 +20,344 @@ y mostrarlo en pantalla,
 
  mostrar tambien cuantos y quienes aprobaron y reprobaron, asi como el porcentaje de aprobados y reprobados.
  
-
 */
 
-#include <iostream>
-#include <vector>    // Para el uso de vectores paralelos que almacenan la informacion
-#include <string>    // Para el manejo avanzado de cadenas de texto (nombres, cuentas, estados)
-#include <fstream>   // Para la creacion, apertura, escritura y cierre del archivo fisico de texto
-#include <iomanip>   // Para el control milimetrico de formateo de flujos y alineacion exacta de columnas
-#include <cctype>    // Para el uso de funciones de verificacion de caracteres como isalpha y isspace
+#include <iostream>  
+#include <vector>    
+#include <string>    
+#include <fstream>   // Para crear y escribir en el archivo de texto externo
+#include <iomanip>   // Librería para usar fixed, setprecision y setw (alineación de columnas)
 
-using namespace std; 
+using namespace std;
 
-// =========================================================================
-// FUNCION AUXILIAR DE VALIDACION DE TEXTO (SOLO LETRAS Y ESPACIOS)
-// =========================================================================
-// Esta funcion recibe una cadena y verifica caracter por caracter que no tenga numeros.
-// Retorna 'true' si el texto es valido (solo letras/espacios) o 'false' si encuentra anomalias.
-bool esTextoValido(const string& texto) {
-    if (texto.empty()) return false; // Una cadena vacia no es un nombre valido
-    
-    for (int i = 0; i < texto.length(); ++i) {
-        // isalpha comprueba si es letra, isspace comprueba si es un espacio en blanco
-        if (!isalpha(texto[i]) && !isspace(texto[i])) {
-            return false; // Si encuentra un numero o simbolo, rompe la validacion e informa el fallo
+// FUNCION PARA MOSTRAR LA NOTA FINAL Y SU ESCALA 
+
+string obtenerPonderacion(double nota) {
+    if (nota >= 90 && nota <= 100) return "Excelente";
+    if (nota >= 80) return "Muy Bueno";
+    if (nota >= 70) return "Bueno";
+    if (nota >= 65) return "Regular";
+    return "Maleta"; // Si es menor a 65
+}
+//ARREGLO: FUNCION PARA VALIDAR LAS NOTAS DE LOS PARCIALES MEJORAMOS LA VALIDACION PARA QUE NO ACEPTE LETRAS
+double ValidarNotas (string Nparcial){
+    double nota = 0.0;
+
+    do {
+        cout << "Nota " << Nparcial << " (0-100): ";
+        cin >> nota;
+
+        //  ARREGLO: Si no es un número, mostramos un mensaje de error y limpiamos el flujo de entrada
+        if (cin.fail()) {
+            cout << "Error: No se permiten letras. Ingrese un numero valido.\n";
+            
+            cin.clear(); // Reestablece el estado de cin (quita el bloqueo)
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Limpia la letra de la memoria
+            
+            // Asignamos un valor fuera de rango para asegurar que el 'while' repita el ciclo
+            nota = -1; 
+        } 
+        // Si es un número, revisamos que esté en el rango correcto
+        else if (nota < 0 || nota > 100) {
+            cout << "Error: La nota debe estar estrictamente entre 0 y 100.\n";
         }
-    }
-    return true; // El texto es completamente alfabetico
+
+    } while (nota < 0 || nota > 100); // Se repite si es menor a 0 (incluyendo el -1 del error) o mayor a 100
+    
+    return nota;
 }
 
-int main() {
-    // -----------------------------------------------------------------
-    // DECLARACION DE VECTORES PARALELOS
-    // -----------------------------------------------------------------
-    // Estructura de almacenamiento indexado donde la posicion [i] de cada vector pertenece al mismo alumno
-    vector<string> nombres;       // Almacena el nombre completo concatenado (nombre + apellido)
-    vector<string> cuentas;       // Almacena el numero de cuenta valido de exactamente 11 digitos
-    vector<char> sexos;           // Almacena el genero de identificacion estudiantil (M/m/F/f)
-    vector<double> promedios;     // Almacena el promedio final calculado bajo los pesos parciales
-    vector<string> escalas;       // Almacena la ponderacion cualitativa asignada (Excelente, Regular, etc.)
-    vector<string> estados;       // Almacena el estado final de la condicion (APROBADO o REPROBADO)
+//ARREGLO: FUNCION PARA MOSTRAR LOS DATOS QUE SE VA INGRESANDO POR ESTUDIANTE  
+void mostrarDatosEstudiante(vector<string>& nombres, vector<string>& apellidos, vector<string>& numerosCuenta, double
+    notafinal, string ponderacion, string estado, int i) {
+    cout << "\n=========================================\n";
+    cout << "      DATOS REGISTRADOS CON EXITO        \n";
+    cout << "=========================================\n";
+    cout << "   ESTADISTICAS DEL ESTUDIANTE INGRESADO\n";
+    cout << "=========================================\n";
+    cout << "Estudiante Nro:    " << i + 1 << "\n";
+    cout << "Nombre:            " << nombres[i] << "\n";
+    cout << "Apellido:          " << apellidos[i] << "\n";
+    cout << "Nro. de Cuenta:    " << numerosCuenta[i] << "\n";
+    cout << "Nota Final:        " << fixed << setprecision(2) << notafinal << "%\n";
+    cout << "Ponderacion:       " << ponderacion << "\n";
+    cout << "Estado:            " << estado << "\n";
+    cout << "=========================================\n\n";
+}
 
-    // -----------------------------------------------------------------
-    // VARIABLES DE CONTROL Y ESTADISTICAS GLOBAL
-    // -----------------------------------------------------------------
-    char continuar = 'S';          // Bandera que controla la continuidad del ciclo de captura de datos
-    int contadorEstudiantes = 0;   // Contador entero para registrar el total de alumnos procesados
-    double sumaPromedios = 0.0;    // Acumulador de punto flotante para totalizar las notas de la seccion
-    int aprobados = 0;             // Contador especifico para alumnos con nota mayor o igual a 60%
-    int reprobados = 0;            // Contador especifico para alumnos con nota menor a 60%
+int main() { 
 
-    // Banner de presentacion institucional limpio diseñado con caracteres uniformes
-    cout << "=========================================================================" << endl;
-    cout << "        SISTEMA DE CONTROL DE CALIFICACIONES - SECCION DE INFORMATICA    " << endl;
-    cout << "=========================================================================" << endl;
-    cout << " * Nota: Se deben ingresar obligatoriamente los primeros 3 estudiantes.\n" << endl;
+    // Creacion de los vectores dinamicos y lo inicializamos al tener n cantidad
+    // ingresada por el usuario
+    vector<string> nombres;
+    vector<string> apellidos;
+    vector<string> numerosCuenta;
+    vector<char> sexo;
+    vector<double> parcial1;
+    vector<double> parcial2;
+    vector<double> parcial3;
+    vector<double> notasFinales;
+    vector<string> ponderaciones;
+    vector<string> estados;
+    
+    double sumaPromedios = 0;
+    int aprobados = 0;
+    int reprobados = 0;
 
-    // Limpieza de banderas de error iniciales del flujo de la consola
-    cin.clear();
+    //ARREGLO:
+    int contadorEstudiantes = 0;
+    char continuar = 'S';
 
-    // -----------------------------------------------------------------
-    // CICLO DE CAPTURA DE DATOS (Minimo 3 iteraciones obligatorias de control)
-    // -----------------------------------------------------------------
-    while (continuar == 'S' || continuar == 's' || contadorEstudiantes < 3) {
-        
-        cout << "-------------------------------------------------------------------------" << endl;
-        cout << "                    REGISTRO DEL ESTUDIANTE #" << (contadorEstudiantes + 1) << endl;
-        cout << "-------------------------------------------------------------------------" << endl;
+    //  Lectura de datos del estudiante
+    // Ciclo principal adaptado
+    do {
+        cout << "\n--- REGISTRO DE CALIFICACIONES ---\n";
+        cout << "\n----------------------------------\n";
+        cout << "\n----- Datos del Estudiante " << contadorEstudiantes + 1 << " -----\n";
+        //Banderas de validación para cada campo
+        bool NombreValido = false;
+        bool ApellidoValido = false;
+        bool NumeroCuentaValido = false;
 
-        string nom, ape, numCuenta;
-        char sexo;
-        double p1, p2, p3;
+        // Variables temporales para leer los datos antes de meterlos al vector
+        string nombreTemporal, apellidoTemporal, cuentaTemporal;
+        char sexoTemporal;
+        double parcial1Temporal, parcial2Temporal, parcial3Temporal;
 
-        // --- VALIDACION DE ENTRADA PARA EL NOMBRE INDIVIDUAL ---
-        while (true) {
-            cout << "Ingrese el nombre: ";
-            cin >> nom;
-            cin.ignore(); // Vacia el residuo del teclado para evitar colisiones en la lectura del apellido
-            
-            if (esTextoValido(nom)) {
-                break; // Nombre correcto, sale del bucle de validacion
-            }
-            cout << " -> [ERROR] El nombre no debe contener numeros ni caracteres especiales. Reintente.\n";
-        }
-
-        // --- VALIDACION DE ENTRADA PARA EL APELLIDO INDIVIDUAL ---
-        while (true) {
-            cout << "Ingrese el apellido: ";
-            cin >> ape;
-            cin.ignore(); // Limpia el bufer del teclado completamente
-            
-            if (esTextoValido(ape)) {
-                break; // Apellido correcto, sale del bucle de validacion
-            }
-            cout << " -> [ERROR] El apellido no debe contener numeros ni caracteres especiales. Reintente.\n";
-        }
-
-        // Concatenacion formal de las variables alfabeticas validadas
-        string nombreCompleto = nom + " " + ape; 
-
-        // --- VALIDACION DE LONGITUD Y DUPLICIDAD DEL NUMERO DE CUENTA ---
-        while (true) {
-            cout << "Ingrese el numero de cuenta (11 digitos): ";
-            cin >> numCuenta;
-            cin.ignore(); 
-
-            // Control estricto de longitud de caracteres de la cadena
-            if (numCuenta.length() != 11) {
-                cout << " -> [ERROR] Cuenta invalida. Debe tener exactamente 11 digitos. Reintente.\n";
-                continue; 
-            }
-
-            // Verificacion de duplicados mediante busqueda secuencial en el vector existente
-            bool yaExiste = false;
-            for (int i = 0; i < cuentas.size(); ++i) {
-                if (cuentas[i] == numCuenta) {
-                    yaExiste = true; // Se encontro coincidencia exacta en el sistema
-                    break;
-                }
-            }
-
-            if (yaExiste) {
-                cout << " -> [ERROR] Esta cuenta ya pertenece a otro estudiante. Reintente.\n";
+        // ==========================================
+        // VALIDACIÓN NOMBRE
+        // ==========================================
+        while (!NombreValido) {
+            cout << "Ingrese el nombre del estudiante: ";
+            getline(cin, nombreTemporal); 
+            if (nombreTemporal.empty()) {
+                cout << "Error: El nombre no puede estar vacio.\n";
             } else {
-                break; // Cuenta unica y valida de 11 digitos aceptada
-            }
-        }
-
-        // --- VALIDACION DEL CARACTER DE GENERO (SEXO) ---
-        while (true) {
-            cout << "Ingrese el sexo (M/m/F/f): ";
-            cin >> sexo;
-            cin.ignore(); 
-            // Evaluacion de opciones aceptables mediante conectores logicos
-            if (sexo == 'M' || sexo == 'm' || sexo == 'F' || sexo == 'f') {
-                break; 
-            }
-            cout << " -> [ERROR] Genero incorrecto. Ingrese M o F (Mayuscula o minuscula).\n";
-        }
-
-        // --- VALIDACIONES INDIVIDUALES DE RANGOS DE NOTAS ACADEMICAS (0 A 100) ---
-        while (true) {
-            cout << "Nota del I Parcial (0-100): "; cin >> p1; cin.ignore();
-            if (p1 >= 0 && p1 <= 100) break;
-            cout << " -> [ERROR] La nota debe estar en el rango de 0 a 100.\n";
-        }
-        while (true) {
-            cout << "Nota del II Parcial (0-100): "; cin >> p2; cin.ignore();
-            if (p2 >= 0 && p2 <= 100) break;
-            cout << " -> [ERROR] La nota debe estar en el rango de 0 a 100.\n";
-        }
-        while (true) {
-            cout << "Nota del III Parcial (0-100): "; cin >> p3; cin.ignore();
-            if (p3 >= 0 && p3 <= 100) break;
-            cout << " -> [ERROR] La nota debe estar en el rango de 0 a 100.\n";
-        }
-
-        // --- CALCULOS DE RENDIMIENTO INDIVIDUAL ---
-        // Aplicacion de formula de pesos porcentuales ponderados (25%, 35%, 40%)
-        double promedioFinal = (p1 * 0.25) + (p2 * 0.35) + (p3 * 0.40);
-        
-        // Asignacion dinamica de escala cualitativa segun rangos oficiales de rendimiento
-        string ponderacion;
-        if (promedioFinal >= 90 && promedioFinal <= 100) ponderacion = "Excelente";
-        else if (promedioFinal >= 80 && promedioFinal < 90) ponderacion = "Muy Bueno";
-        else if (promedioFinal >= 70 && promedioFinal < 80) ponderacion = "Bueno";
-        else if (promedioFinal >= 60 && promedioFinal < 70) ponderacion = "Regular";
-        else ponderacion = "Maleta";
-
-        // Determinacion del estado de aprobacion institucional
-        string estado;
-        if (promedioFinal >= 60) {
-            estado = "APROBADO";
-            aprobados++; // Incrementa acumulador global de aprobados
-        } else {
-            estado = "REPROBADO";
-            reprobados++; // Incrementa acumulador global de reprobados
-        }
-
-        // --- ALMACENAMIENTO EN VECTORES PARALELOS ---
-        // Se insertan los datos validados al final de cada coleccion dinamica manteniendo los indices alineados
-        nombres.push_back(nombreCompleto);
-        cuentas.push_back(numCuenta);
-        sexos.push_back(sexo);
-        promedios.push_back(promedioFinal);
-        escalas.push_back(ponderacion);
-        estados.push_back(estado);
-
-        // Actualizacion de acumuladores de control general de la seccion
-        sumaPromedios += promedioFinal; 
-        contadorEstudiantes++;         
-
-        // --- IMPRESION DE LA FICHA INDIVIDUAL EN CONSOLA ---
-        cout << fixed << setprecision(2); // Formateo fijo a dos cifras decimales para promedios financieros y academicos
-        cout << "\n============================================================" << endl;
-        cout << "|               RESUMEN ACADEMICO INDIVIDUAL               |" << endl;
-        cout << "============================================================" << endl;
-        cout << "  Estudiante : " << nombreCompleto << endl;
-        cout << "  N. Cuenta  : " << numCuenta << "  |  Sexo: " << sexo << endl;
-        cout << "  Promedio   : " << promedioFinal << " %" << endl;
-        cout << "  Escala     : " << ponderacion << endl;
-        cout << "  Condicion  : " << estado << endl;
-        cout << "------------------------------------------------------------\n" << endl;
-
-        // Control de ruptura o continuidad evaluando la condicion limite de 3 alumnos obligatorios
-        if (contadorEstudiantes >= 3) {
-            while (true) {
-                cout << "Desea registrar otro estudiante? (S/N): ";
-                cin >> continuar; cin.ignore(); 
-                if (continuar == 'S' || continuar == 's' || continuar == 'N' || continuar == 'n') {
-                    break; 
+                NombreValido = true; 
+                for (int i = 0; i < nombreTemporal.length(); i++) {
+                    if (!isalpha(nombreTemporal[i]) && nombreTemporal[i] != ' ') NombreValido = false; 
                 }
-                cout << " -> [ERROR] Opcion no valida. Introduzca unicamente S o N.\n";
+                if (!NombreValido) cout << "Error: Solo letras y espacios.\n";
             }
         }
-    }
+        nombres.push_back(nombreTemporal); // Guardamos en el vector definitivo
 
-    // --- PROCESAMIENTO ESTADISTICO GLOBAL DE LA SECCION ---
-    double promedioGeneralGlobal = sumaPromedios / contadorEstudiantes; 
-    double porcentajeAprobados = ((double)aprobados / contadorEstudiantes) * 100.0; 
-    double porcentajeReprobados = ((double)reprobados / contadorEstudiantes) * 100.0; 
-
-    // -----------------------------------------------------------------
-    // REPORTE GENERAL EN PANTALLA CON ALINEACION PERFECTA
-    // -----------------------------------------------------------------
-    cout << fixed << setprecision(2); 
-    cout << "\n=========================================================================================================" << endl;
-    cout << "|                               REPORTE GENERAL DE RENDIMIENTO ACADEMICO                                |" << endl;
-    cout << "=========================================================================================================" << endl;
-    cout << "| " << left << setw(8)  << "No." 
-         << "| " << setw(25) << "Nombre Completo" 
-         << "| " << setw(15) << "N. Cuenta" 
-         << "| " << setw(6)  << "Sexo" 
-         << "| " << setw(10) << "Promedio" 
-         << "| " << setw(14) << "Escala" 
-         << "| " << setw(12) << "Estado" << "|" << endl;
-    cout << "---------------------------------------------------------------------------------------------------------" << endl;
-
-    // Recorrido secuencial de las estructuras paralelas para la visualizacion general tabulada
-    for (int i = 0; i < nombres.size(); ++i) {
-        string indiceStr = "[" + to_string(i + 1) + "]";
-        cout << "| " << left << setw(8)  << indiceStr
-             << "| " << setw(25) << nombres[i]
-             << "| " << setw(15) << cuentas[i]
-             << "| " << setw(6)  << sexos[i]
-             << "| " << setw(10) << promedios[i]
-             << "| " << setw(14) << escalas[i]
-             << "| " << setw(12) << estados[i] << "|" << endl;
-    }
-    cout << "=========================================================================================================" << endl;
-
-    // -----------------------------------------------------------------
-    // CUADRO ESTADISTICO GLOBAL EN CONSOLA (DISEÑO MATEMATICO ALINEADO)
-    // -----------------------------------------------------------------
-    // Ancho total interno disponible entre palitos de control = 62 caracteres exactos.
-    cout << "\n==================================================================" << endl;
-    cout << "|                    CUADRO ESTADISTICO GLOBAL                   |" << endl;
-    cout << "==================================================================" << endl;
-    
-    cout << "| Cantidad Total de Estudiantes Ingresados  | " << left << setw(17) << contadorEstudiantes << "|" << endl;
-    cout << "------------------------------------------------------------------" << endl;
-    
-    cout << "| Promedio General Obtenido en la Seccion   | " << left << setw(13) << promedioGeneralGlobal << " % |" << endl;
-    cout << "------------------------------------------------------------------" << endl;
-    
-    // Para las lineas complejas calculamos la longitud del string dinamico para rellenar los espacios faltantes de forma exacta
-    string filaAprobados = to_string(aprobados) + " Alumnos (" + to_string((int)porcentajeAprobados) + "%)";
-    cout << "| Cantidad y Porcentaje de Aprobados        | " << left << setw(17) << filaAprobados << "|" << endl;
-    cout << "------------------------------------------------------------------" << endl;
-    
-    string filaReprobados = to_string(reprobados) + " Alumnos (" + to_string((int)porcentajeReprobados) + "%)";
-    cout << "| Cantidad y Porcentaje de Reprobados       | " << left << setw(17) << filaReprobados << "|" << endl;
-    cout << "==================================================================" << endl;
-
-    // -----------------------------------------------------------------
-    // LISTADOS FILTRADOS DE ESTUDIANTES ACADEMICOS
-    // -----------------------------------------------------------------
-    cout << "\n==================================================================" << endl;
-    cout << "|                  LISTADO DE ALUMNOS APROBADOS                  |" << endl;
-    cout << "==================================================================" << endl;
-    for (int i = 0; i < estados.size(); ++i) { 
-        if (estados[i] == "APROBADO") {       
-            cout << "  * " << nombres[i] << " (N. Cuenta: " << cuentas[i] << ")" << endl;
-        }
-    }
-
-    cout << "\n==================================================================" << endl;
-    cout << "|                  LISTADO DE ALUMNOS REPROBADOS                 |" << endl;
-    cout << "==================================================================" << endl; 
-    for (int i = 0; i < estados.size(); ++i) { 
-        if (estados[i] == "REPROBADO") {      
-            cout << "  * " << nombres[i] << " (N. Cuenta: " << cuentas[i] << ")" << endl;
-        }
-    }
-
-    // -----------------------------------------------------------------
-    // EXPORTACION AUTOMATICA AL ARCHIVO FISICO EN DISCO HARDWARE
-    // -----------------------------------------------------------------
-    ofstream archivo("Reporte_Estudiantes.txt"); 
-    
-    if (archivo.is_open()) { 
-        archivo << fixed << setprecision(2); // Formato del flujo del archivo de texto
-        
-        // Escritura de la tabla estructurada general en el archivo de texto
-        archivo << "=========================================================================================================\n";
-        archivo << "|                               REPORTE GENERAL DE RENDIMIENTO ACADEMICO                                |\n";
-        archivo << "=========================================================================================================\n";
-        archivo << "| " << left << setw(8)  << "No." 
-                << "| " << setw(25) << "Nombre Completo" 
-                << "| " << setw(15) << "N. Cuenta" 
-                << "| " << setw(6)  << "Sexo" 
-                << "| " << setw(10) << "Promedio" 
-                << "| " << setw(14) << "Escala" 
-                << "| " << setw(12) << "Estado" << "|\n";
-        archivo << "---------------------------------------------------------------------------------------------------------\n";
-
-        for (int i = 0; i < nombres.size(); ++i) {
-            string indiceStr = "[" + to_string(i + 1) + "]";
-            archivo << "| " << left << setw(8)  << indiceStr
-                    << "| " << setw(25) << nombres[i]
-                    << "| " << setw(15) << cuentas[i]
-                    << "| " << setw(6)  << sexos[i]
-                    << "| " << setw(10) << promedios[i]
-                    << "| " << setw(14) << escalas[i]
-                    << "| " << setw(12) << estados[i] << "|\n";
-        }
-        archivo << "=========================================================================================================\n";
-        
-        // Escritura del Cuadro Estadistico perfectamente alineado en el archivo de disco
-        archivo << "\n==================================================================\n";
-        archivo << "|                    CUADRO ESTADISTICO GLOBAL                   |\n";
-        archivo << "==================================================================\n";
-        
-        archivo << "| Cantidad Total de Estudiantes Ingresados  | " << left << setw(17) << contadorEstudiantes << "|\n";
-        archivo << "------------------------------------------------------------------\n";
-        
-        archivo << "| Promedio General Obtenido en la Seccion   | " << left << setw(13) << promedioGeneralGlobal << " % |\n";
-        archivo << "------------------------------------------------------------------\n";
-        
-        archivo << "| Cantidad y Porcentaje de Aprobados        | " << left << setw(17) << filaAprobados << "|\n";
-        archivo << "------------------------------------------------------------------\n";
-        
-        archivo << "| Cantidad y Porcentaje de Reprobados       | " << left << setw(17) << filaReprobados << "|\n";
-        archivo << "==================================================================\n";
-        
-        // Escritura complementaria de los listados ordenados dentro del reporte fisico
-        archivo << "\n==================================================================\n";
-        archivo << "|                  LISTADO DE ALUMNOS APROBADOS                  |\n";
-        archivo << "==================================================================\n";
-        for (int i = 0; i < estados.size(); ++i) { 
-            if (estados[i] == "APROBADO") {       
-                archivo << "  * " << nombres[i] << " (N. Cuenta: " << cuentas[i] << ")\n";
+        // ==========================================
+        // VALIDACIÓN APELLIDO
+        // ==========================================
+        while (!ApellidoValido) {
+            cout << "Ingrese el apellido del estudiante: ";
+            getline(cin, apellidoTemporal); 
+            if (apellidoTemporal.empty()) {
+                cout << "Error: El apellido no puede estar vacio.\n";
+            } else {
+                ApellidoValido = true; 
+                for (int i = 0; i < apellidoTemporal.length(); i++) {
+                    if (!isalpha(apellidoTemporal[i]) && apellidoTemporal[i] != ' ') ApellidoValido = false; 
+                }
+                if (!ApellidoValido) cout << "Error: Solo letras y espacios.\n";
             }
         }
+        apellidos.push_back(apellidoTemporal);
 
-        archivo << "\n==================================================================\n";
-        archivo << "|                  LISTADO DE ALUMNOS REPROBADOS                 |\n";
-        archivo << "==================================================================\n";
-        for (int i = 0; i < estados.size(); ++i) { 
-            if (estados[i] == "REPROBADO") {      
-                archivo << "  * " << nombres[i] << " (N. Cuenta: " << cuentas[i] << ")\n";
+        // ==========================================
+        // VALIDACIÓN CUENTA
+        // ==========================================
+        while (!NumeroCuentaValido) {
+            cout << "Ingrese el numero de Cuenta del estudiante: ";
+            getline(cin, cuentaTemporal); 
+            if (cuentaTemporal.empty()) {
+                cout << "Error: El numero de cuenta no puede estar vacio.\n";
+            } else {
+                NumeroCuentaValido = true; 
+                for (int i = 0; i < cuentaTemporal.length(); i++) {
+                    if (!isdigit(cuentaTemporal[i])) NumeroCuentaValido = false; 
+                }
+                if (!NumeroCuentaValido) cout << "Error: Solo numeros.\n";
             }
         }
+        numerosCuenta.push_back(cuentaTemporal);
+
+        // ==========================================
+        // VALIDACIÓN SEXO
+        // ==========================================
+        do {
+            cout << "Sexo (M/F): ";
+            cin >> sexoTemporal;
+            sexoTemporal = toupper(sexoTemporal); 
+            if (sexoTemporal != 'M' && sexoTemporal != 'F') {
+                cout << "ERROR: Solo se permiten 'M' o 'F'.\n";
+            }
+        } while (sexoTemporal != 'M' && sexoTemporal != 'F'); 
+        sexo.push_back(sexoTemporal);
+
+        // ==========================================
+        // VALIDACIÓN NOTAS
+        // ==========================================
+        parcial1Temporal = ValidarNotas("I Parcial");
+        parcial2Temporal = ValidarNotas("II Parcial");
+        parcial3Temporal = ValidarNotas("III Parcial");
         
-        archivo.close(); // Liberacion y cierre seguro del flujo de memoria asignado al archivo
-        cout << "\n[INFO] Exito total! Todo el reporte se ha exportado correctamente a 'Reporte_Estudiantes.txt'." << endl;
-    } else {
-        cout << "\n[ERROR] El archivo de texto no pudo ser creado en el almacenamiento." << endl;
+        parcial1.push_back(parcial1Temporal);
+        parcial2.push_back(parcial2Temporal);
+        parcial3.push_back(parcial3Temporal);
+
+        // Limpiamos el buffer del cin >> de las notas
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+        system("cls");
+        
+        // Cálculos matemáticos usando las variables temporales
+        double notaFinal = (parcial1Temporal * 0.25) + (parcial2Temporal * 0.35) + (parcial3Temporal * 0.40);
+        notasFinales.push_back(notaFinal);
+        
+        string pond = obtenerPonderacion(notaFinal);
+        ponderaciones.push_back(pond);
+
+        if (notaFinal >= 65) {
+            estados.push_back("Aprobado");
+            aprobados++;
+        } else {
+            estados.push_back("Reprobado");
+            reprobados++;
+        }
+        sumaPromedios += notaFinal;
+
+        // Avanzamos al siguiente estudiante registrado
+        contadorEstudiantes++; 
+        // Mostrar datos individuales
+        mostrarDatosEstudiante(nombres, apellidos, numerosCuenta, notaFinal, 
+            ponderaciones.back(), estados.back(), contadorEstudiantes - 1);
+
+        // ===================================================================
+        // LA PREGUNTA que nos ayuda a continuar o no
+        // Solo se activa si ya registramos al menos 3
+        // ===================================================================
+        if (contadorEstudiantes >= 3) {
+            string entrada; // Cambiamos a string para poder detectar el "Enter" vacío
+
+            do {
+                cout << "Desea ingresar otro estudiante? (S/N): ";
+                getline(cin, entrada); // Lee toda la línea, incluyendo si solo presionan Enter
+
+                // 1. Validar si quedó vacío
+                if (entrada.empty()) {
+                    cout << "Error: No puede dejar la opcion en blanco.\n";
+                    continuar = 'X'; // Forzamos valor inválido para repetir el ciclo
+                }
+                // 2. Validar que no metan más de un carácter (evita textos largos o números de varios dígitos)
+                else if (entrada.length() != 1) {
+                    cout << "Error: Ingrese solo una letra ('S' o 'N').\n";
+                    continuar = 'X';
+                }
+                // 3. Si metieron un solo carácter, lo procesamos
+                else {
+                    continuar = toupper(entrada[0]); // Guardamos el carácter en tu variable original 'continuar'
+
+                    if (isdigit(continuar)) {
+                        cout << "Error: No se permiten numeros. Ingrese 'S' o 'N'.\n";
+                        continuar = 'X';
+                    }
+                    else if (continuar != 'S' && continuar != 'N') {
+                        cout << "Error: Ingrese una opcion valida ('S' o 'N').\n";
+                    }
+                }
+
+            } while (continuar != 'S' && continuar != 'N');
+            
+            // Al usar getline aquí, ya no necesitas el cin.ignore() abajo.
+        } else {
+            continuar = 'S'; 
+        }
+
+
+    } while (continuar == 'S'); // Se repite si el usuario quiere 'S'
+
+    system("cls"); // Limpiamos la pantalla antes de mostrar el reporte final
+    
+    // =======================================================
+    // FIN DEL REGISTRO. ACTUALIZAMOS LA VARIABLE 'n'
+    // =======================================================
+    int contadorNuevo = contadorEstudiantes; // Ahora 'n' guarda el total real de alumnos ingresados
+    
+    // Promedio General y cantidad de aprobados y reprobados
+    double promedioGeneral = sumaPromedios / contadorNuevo;
+    double porcentajeAprobados = ((double)aprobados / contadorNuevo) * 100;
+    double porcentajeReprobados = ((double)reprobados / contadorNuevo) * 100;
+
+    // Crear el archivo e imprimimos los resultados 
+    ofstream archivo("reporte_estudiantes.txt");
+    
+    if (!archivo) {
+        cout << "Error al crear el archivo de texto.\n";
+        return 1;
+        }
+
+    // Imprimir encabezado de la tabla en Pantalla y en el Archivo
+    // usamos setw para alinear las columnas y left para alinear a la izquierda
+    cout << "\n========================================= REPORTE DE ESTUDIANTES =================================================================================================\n";
+    cout << left << setw(15) << "N Cuenta" << setw(30) << "Nombres" << setw(30) << "Apellidos" << setw(15) << "Nota Final" << setw(15) << "Ponderacion" << setw(12) << "Estado" << "\n";
+    cout << "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n";
+
+    archivo << "========================================= REPORTE DE ESTUDIANTES ======================================================================================================\n";
+    archivo << left << setw(15) << "N Cuenta" << setw(30) << "Nombres" << setw(30) << "Apellidos" << setw(15) << "Nota Final" << setw(15) << "Ponderacion" << setw(12) << "Estado" << "\n";
+    archivo << "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n";
+
+    // imprimir la tabla fila por fila
+    for (int i = 0; i < contadorNuevo; i++) {
+            cout << left << setw(15) << numerosCuenta[i] 
+             << setw(30) << nombres[i] 
+             << setw(30) << apellidos[i]
+              //lo usamos para mostrar 2 decimales en la nota final
+             << setw(15) << fixed << setprecision(2) << notasFinales[i] 
+             << setw(15) << ponderaciones[i] 
+             << setw(12) << estados[i] << "\n";
+        //lo mismo para el archivo de texto
+        archivo << left << setw(15) << numerosCuenta[i] 
+                << setw(30) << nombres[i] 
+                << setw(30) << apellidos[i] 
+                << setw(15) << fixed << setprecision(2) << notasFinales[i] 
+                << setw(15) << ponderaciones[i] 
+                << setw(12) << estados[i] << "\n";
     }
 
-    return 0; // Finalizacion correcta del programa principal
+    //  mostramos las estadisticas generales en Pantalla y en el Archivo
+    cout << "----------------------------------------------------------------------------------------------------------\n";
+    cout << "Total de estudiantes ingresados: " << contadorNuevo << "\n";
+    cout << "Promedio general del grupo     : " << fixed << setprecision(2) << promedioGeneral << "\n";
+    cout << "Cantidad de Aprobados          : " << aprobados << " (" << fixed << setprecision(2) << porcentajeAprobados << "%)\n";
+    cout << "Cantidad de Reprobados         : " << reprobados << " (" << fixed << setprecision(2) << porcentajeReprobados << "%)\n";
+
+    archivo << "----------------------------------------------------------------------------------------------------------\n";
+    archivo << "Total de estudiantes ingresados: " << contadorNuevo << "\n";
+     //lo usamos para mostrar 2 decimales en la nota final
+    archivo << "Promedio general del grupo     : " << fixed << setprecision(2) << promedioGeneral << "\n";
+    archivo << "Cantidad de Aprobados          : " << aprobados << " (" << fixed << setprecision(2) << porcentajeAprobados << "%)\n";
+    archivo << "Cantidad de Reprobados         : " << reprobados << " (" << fixed << setprecision(2) << porcentajeReprobados << "%)\n";
+    
+    // Listado de aprobados en Pantalla y en el Archivo
+    cout << "\nEstudiantes Aprobados:\n";
+    archivo << "\nEstudiantes Aprobados:\n";
+    for (int i = 0; i < contadorNuevo; i++) {
+        if (estados[i] == "Aprobado") {
+            cout << "- " << nombres[i] << " " << apellidos[i] << "\n";
+            archivo << "- " << nombres[i] << " " << apellidos[i] << "\n";
+        }
+    }
+
+    // Listado de reprobados en Pantalla y en el Archivo
+    cout << "\nEstudiantes Reprobados:\n";
+    archivo << "\nEstudiantes Reprobados:\n";
+    for (int i = 0; i < contadorNuevo; i++) {
+        if (estados[i] == "Reprobado") {
+            cout << "- " << nombres[i] << " " << apellidos[i] << "\n";
+            archivo << "- " << nombres[i] << " " << apellidos[i] << "\n";
+        }
+    }
+
+    // Cerramos el flujo del archivo
+    archivo.close();
+    
+    cout << "\n[!] Los datos han sido guardados exitosamente en el archivo 'reporte_estudiantes.txt'.\n";
+    
+    return 0;
 }

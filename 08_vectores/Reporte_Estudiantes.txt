@@ -1,34 +1,18 @@
-=========================================================================================================
-|                               REPORTE GENERAL DE RENDIMIENTO ACADEMICO                                |
-=========================================================================================================
-| No.     | Nombre Completo          | N. Cuenta      | Sexo  | Promedio  | Escala        | Estado      |
----------------------------------------------------------------------------------------------------------
-| [1]     | dfghjk sdrtfgh           | 13456279368    | m     | 66.15     | Regular       | APROBADO    |
-| [2]     | qweghjk sfg              | 09859238190    | f     | 38.00     | Maleta        | REPROBADO   |
-| [3]     | qwerghjk sdfghj          | 23145368790    | f     | 75.45     | Bueno         | APROBADO    |
-| [4]     | xdfcghjj fghjk           | 26138063591    | m     | 79.45     | Bueno         | APROBADO    |
-=========================================================================================================
+========================================= REPORTE DE ESTUDIANTES ======================================================================================================
+N Cuenta       Nombres                       Apellidos                     Nota Final     Ponderacion    Estado      
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+3414234234     ANA                           JUAREZ                        75.95          Bueno          Aprobado    
+3534545        FAFAF                         TRAEAET                       74.20          Bueno          Aprobado    
+35135345       RWETWE                        RYWTTRY                       77.75          Bueno          Aprobado    
+----------------------------------------------------------------------------------------------------------
+Total de estudiantes ingresados: 3
+Promedio general del grupo     : 75.97
+Cantidad de Aprobados          : 3 (100.00%)
+Cantidad de Reprobados         : 0 (0.00%)
 
-==================================================================
-|                    CUADRO ESTADISTICO GLOBAL                   |
-==================================================================
-| Cantidad Total de Estudiantes Ingresados  | 4                |
-------------------------------------------------------------------
-| Promedio General Obtenido en la Seccion   | 64.76         % |
-------------------------------------------------------------------
-| Cantidad y Porcentaje de Aprobados        | 3 Alumnos (75%)  |
-------------------------------------------------------------------
-| Cantidad y Porcentaje de Reprobados       | 1 Alumnos (25%)  |
-==================================================================
+Estudiantes Aprobados:
+- ANA JUAREZ
+- FAFAF TRAEAET
+- RWETWE RYWTTRY
 
-==================================================================
-|                  LISTADO DE ALUMNOS APROBADOS                  |
-==================================================================
-  * dfghjk sdrtfgh (N. Cuenta: 13456279368)
-  * qwerghjk sdfghj (N. Cuenta: 23145368790)
-  * xdfcghjj fghjk (N. Cuenta: 26138063591)
-
-==================================================================
-|                  LISTADO DE ALUMNOS REPROBADOS                 |
-==================================================================
-  * qweghjk sfg (N. Cuenta: 09859238190)
+Estudiantes Reprobados:
